@@ -1,0 +1,16 @@
+# Node
+node_modules
+npm-debug.log
+
+# Docker
+*.tar
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+
+# OS/Editor
+.DS_Store
+.vscode/
