@@ -1,0 +1,53 @@
+# -----------------
+# Node.js
+# -----------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+pnpm-lock.yaml
+
+# -----------------
+# Logs
+# -----------------
+*.log
+logs/
+*.out
+*.pid
+
+# -----------------
+# Docker
+# -----------------
+*.tar
+.dockerignore
+
+# -----------------
+# Terraform
+# -----------------
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+override.tf
+override.tf.json
+terraform.tfstate.backup
+terraform.tfvars        # <- keep secrets out of GitHub
+*.auto.tfvars.json
+
+# -----------------
+# AWS / Credentials
+# -----------------
+.aws/
+*.pem
+*.key
+*.crt
+
+# -----------------
+# OS / Editor junk
+# -----------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
