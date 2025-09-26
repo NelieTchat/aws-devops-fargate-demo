@@ -1,0 +1,21 @@
+# EXAMPLE ONLY — copy to terraform.tfvars locally and fill in real values
+name       = "fargate-demo"
+region     = "us-west-2"
+account_id = "123456789012"   # not secret
+
+repo_name  = "fargate-demo-app"
+image_tag  = "1.0.0"
+
+vpc_id             = "vpc-xxxxxxxx"
+public_subnet_ids  = ["subnet-aaaa", "subnet-bbbb"]
+private_subnet_ids = ["subnet-cccc", "subnet-dddd"]
+
+task_cpu    = 256
+task_memory = 512
+
+min_capacity = 1
+max_capacity = 3
+cpu_target   = 50
+
+# Example placeholders (do not commit real ones)
+alarm_sns_topic_arn = ""
