@@ -1,0 +1,41 @@
+# create/overwrite root .gitignore
+cat > .gitignore <<'EOF'
+# Node
+node_modules/
+npm-debug.log*
+yarn-*.log
+pnpm-lock.yaml
+package-lock.json
+
+# Docker
+*.tar
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/terraform.tfstate
+**/terraform.tfstate.backup
+crash.log
+override.tf
+override.tf.json
+*.auto.tfvars.json
+terraform.tfvars
+
+# AWS/creds
+.aws/
+*.pem
+*.key
+*.crt
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+EOF
+
+# add app/.dockerignore if you still have it
+git add .gitignore app/.dockerignore 2>/dev/null || true
+git commit -m "Add root .gitignore and app/.dockerignore (prevent TF artifacts)" || true
