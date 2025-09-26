@@ -12,6 +12,9 @@ logs
 *.err
 
 # Terraform
+# Terraform variable files (never commit)
+**/*.tfvars
+**/*.tfvars.json
 .terraform/
 *.tfstate
 *.tfstate.*
