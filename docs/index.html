@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS Fargate Demo — Containerized App with CI/CD | Nelie Tchatchouang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f2ee;
+    --bg-mid: #ede9e3;
+    --bg-card: #ffffff;
+    --orange: #e85d04;
+    --orange-dim: #c44d03;
+    --orange-glow: rgba(232,93,4,0.08);
+    --orange-border: rgba(232,93,4,0.2);
+    --dark: #1a1208;
+    --dark-mid: #2d1f0a;
+    --text: #1a1208;
+    --text-muted: #6b5a47;
+    --text-dim: #a8917a;
+    --border: rgba(26,18,8,0.08);
+    --border-mid: rgba(26,18,8,0.14);
+    --green: #2d7a22;
+    --green-bg: rgba(45,122,34,0.08);
+    --blue: #1a56a0;
+    --mono: 'Fira Code', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 400;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* Subtle dot pattern */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle, rgba(26,18,8,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 1; }
+
+  /* NAV */
+  nav {
+    border-bottom: 1px solid var(--border-mid);
+    padding: 1.2rem 0;
+    position: sticky; top: 0;
+    background: rgba(245,242,238,0.95);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+  .nav-logo { font-family: var(--mono); font-size: 12px; color: var(--orange); letter-spacing: 0.04em; }
+  .nav-links { display: flex; gap: 2rem; }
+  .nav-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; font-family: var(--mono); font-size: 12px; }
+  .nav-links a:hover { color: var(--orange); }
+
+  /* HERO */
+  .hero { padding: 5.5rem 0 3rem; }
+
+  .hero-tag {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--orange); letter-spacing: 0.15em;
+    text-transform: uppercase; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero-tag::before {
+    content: ''; display: inline-block;
+    width: 24px; height: 2px; background: var(--orange);
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 700; line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem; color: var(--dark);
+  }
+  h1 .accent { color: var(--orange); }
+
+  .hero-desc {
+    font-size: 1.05rem; color: var(--text-muted);
+    max-width: 580px; margin-bottom: 2.5rem; line-height: 1.8;
+    font-weight: 400;
+  }
+
+  .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--mono); font-size: 12px;
+    text-decoration: none; border-radius: 3px;
+    transition: all 0.2s; letter-spacing: 0.02em; font-weight: 500;
+  }
+  .btn-primary { background: var(--dark); color: var(--bg); }
+  .btn-primary:hover { background: var(--dark-mid); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(26,18,8,0.2); }
+  .btn-ghost { border: 1.5px solid var(--border-mid); color: var(--text-muted); background: transparent; }
+  .btn-ghost:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* STATUS */
+  .status-bar {
+    display: flex; gap: 0.75rem; flex-wrap: wrap;
+    padding: 1.5rem 0;
+    border-top: 2px solid var(--dark);
+    border-bottom: 1px solid var(--border-mid);
+    margin: 3rem 0;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 10px;
+    padding: 5px 12px; border-radius: 2px;
+    letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500;
+  }
+  .badge-dark   { background: var(--dark); color: var(--bg); }
+  .badge-orange { background: var(--orange-glow); color: var(--orange); border: 1px solid var(--orange-border); }
+  .badge-green  { background: var(--green-bg); color: var(--green); border: 1px solid rgba(45,122,34,0.2); }
+  .badge-muted  { background: var(--bg-mid); color: var(--text-muted); border: 1px solid var(--border-mid); }
+
+  /* SECTIONS */
+  section { padding: 3.5rem 0; border-bottom: 1px solid var(--border); }
+  section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--orange); letter-spacing: 0.18em;
+    text-transform: uppercase; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 10px; font-weight: 500;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border-mid); }
+
+  h2 { font-size: 1.6rem; font-weight: 600; margin-bottom: 1rem; color: var(--dark); letter-spacing: -0.02em; }
+  h3 { font-size: 1rem; font-weight: 600; color: var(--dark); margin-bottom: 0.4rem; }
+  p { color: var(--text-muted); margin-bottom: 1rem; }
+
+  /* HIGHLIGHT LIST */
+  .highlight-list { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
+  .highlight-list li {
+    display: flex; gap: 12px; align-items: flex-start;
+    font-size: 14px; color: var(--text-muted); line-height: 1.6;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .highlight-list li::before { content: '→'; color: var(--orange); flex-shrink: 0; font-weight: 600; font-family: var(--mono); font-size: 13px; }
+  .highlight-list li strong { color: var(--dark); font-weight: 600; }
+
+  /* ARCHITECTURE DIAGRAM */
+  .arch-diagram {
+    background: var(--dark);
+    border-radius: 6px; padding: 2rem;
+    margin-top: 1.5rem; position: relative; overflow: hidden;
+  }
+  .arch-diagram::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(232,93,4,0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .arch-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;
+    position: relative; z-index: 1;
+  }
+  .arch-row:last-child { margin-bottom: 0; }
+  .arch-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px; padding: 0.6rem 1rem;
+    text-align: center; min-width: 110px;
+  }
+  .arch-box.highlight { border-color: rgba(232,93,4,0.5); background: rgba(232,93,4,0.08); }
+  .arch-box-title { font-family: var(--mono); font-size: 11px; color: #fff; font-weight: 500; display: block; }
+  .arch-box-sub { font-size: 10px; color: rgba(255,255,255,0.4); display: block; margin-top: 2px; font-family: var(--mono); }
+  .arch-arrow { color: rgba(255,255,255,0.25); font-size: 14px; font-family: var(--mono); }
+  .arch-arrow.orange { color: var(--orange); }
+  .arch-divider {
+    border: none; border-top: 1px dashed rgba(255,255,255,0.1);
+    margin: 0.75rem 0; position: relative; z-index: 1;
+  }
+  .arch-label {
+    font-family: var(--mono); font-size: 9px;
+    color: rgba(255,255,255,0.25); text-align: center;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    margin-bottom: 0.75rem; position: relative; z-index: 1;
+  }
+
+  /* PROGRESSION STEPS */
+  .progression {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px; background: var(--border-mid);
+    border: 1px solid var(--border-mid); border-radius: 4px;
+    overflow: hidden; margin-top: 1.5rem;
+  }
+  .prog-step {
+    background: var(--bg-card); padding: 1.25rem;
+    position: relative;
+  }
+  .prog-step::before {
+    content: attr(data-step);
+    position: absolute; top: 1rem; right: 1rem;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--text-dim); font-weight: 500;
+  }
+  .prog-icon { font-size: 1.5rem; margin-bottom: 0.75rem; display: block; }
+  .prog-step h4 { font-size: 13px; font-weight: 600; color: var(--dark); margin-bottom: 4px; }
+  .prog-step p { font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+  .prog-step.active { background: var(--dark); }
+  .prog-step.active h4 { color: #fff; }
+  .prog-step.active p { color: rgba(255,255,255,0.5); }
+  .prog-step.active::before { color: var(--orange); }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--dark);
+    border-radius: 4px;
+    padding: 1.25rem 1.5rem;
+    font-family: var(--mono); font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    overflow-x: auto; margin-top: 1rem; line-height: 1.9;
+  }
+  .code-block .kw  { color: var(--orange); }
+  .code-block .str { color: #90c97a; }
+  .code-block .cmt { color: rgba(255,255,255,0.2); font-style: italic; }
+  .code-block .key { color: #7ac5e8; }
+
+  /* STACK */
+  .stack-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+  .stack-pill {
+    font-family: var(--mono); font-size: 11px;
+    padding: 6px 14px; border-radius: 2px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-mid);
+    color: var(--text-muted); transition: all 0.2s; font-weight: 500;
+  }
+  .stack-pill:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-glow); }
+
+  /* LEARNINGS */
+  .learning-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; margin-top: 1rem;
+  }
+  .learning-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1.25rem;
+    border-left: 3px solid var(--orange);
+  }
+  .learning-card h4 { font-size: 13px; font-weight: 600; color: var(--dark); margin-bottom: 6px; font-family: var(--mono); }
+  .learning-card p { font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.6; }
+
+  /* FOOTER */
+  footer { padding: 3rem 0; border-top: 2px solid var(--dark); margin-top: 2rem; }
+  .footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+  .footer-name { font-family: var(--mono); font-size: 12px; color: var(--orange); font-weight: 500; }
+  .footer-links { display: flex; gap: 1.5rem; }
+  .footer-links a { font-size: 12px; color: var(--text-muted); text-decoration: none; font-family: var(--mono); transition: color 0.2s; }
+  .footer-links a:hover { color: var(--orange); }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .hero > * { animation: fadeUp 0.5s ease both; }
+  .hero > *:nth-child(1) { animation-delay: 0.1s; }
+  .hero > *:nth-child(2) { animation-delay: 0.2s; }
+  .hero > *:nth-child(3) { animation-delay: 0.3s; }
+  .hero > *:nth-child(4) { animation-delay: 0.4s; }
+
+  @media (max-width: 600px) {
+    .nav-links { display: none; }
+    h1 { font-size: 1.9rem; }
+    .arch-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <span class="nav-logo">nelie-tchat / fargate-demo</span>
+    <div class="nav-links">
+      <a href="#architecture">Architecture</a>
+      <a href="#pipeline">CI/CD</a>
+      <a href="#progression">Progression</a>
+      <a href="#stack">Stack</a>
+      <a href="https://linkedin.com/in/nelie-tchat" target="_blank">LinkedIn ↗</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-tag">AWS · ECS Fargate · Terraform · CI/CD</div>
+    <h1>Fargate Demo<br><span class="accent">Container to Cloud</span><br>End-to-End</h1>
+    <p class="hero-desc">
+      A complete, production-pattern reference for deploying a containerized application on AWS ECS Fargate — from writing the Dockerfile to a fully automated GitHub Actions pipeline that builds, pushes to ECR, and deploys on every merge.
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/NelieTchat/aws-devops-fargate-demo" target="_blank" class="btn btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+      <a href="https://linkedin.com/in/nelie-tchat" target="_blank" class="btn btn-ghost">Built by Nelie Tchatchouang ↗</a>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span class="badge badge-dark">Portfolio Project</span>
+    <span class="badge badge-orange">ECS Fargate</span>
+    <span class="badge badge-green">Terraform Provisioned</span>
+    <span class="badge badge-orange">GitHub Actions CI/CD</span>
+    <span class="badge badge-muted">Node.js · Docker</span>
+  </div>
+
+  <!-- OVERVIEW -->
+  <section>
+    <div class="section-label">Overview</div>
+    <h2>What this project covers</h2>
+    <p>This is a deliberate, well-documented reference for the full Fargate deployment lifecycle. Not a quickstart — a production pattern. Every layer is separated: the application, the container, the infrastructure, and the delivery pipeline. Each can be understood and modified independently.</p>
+    <ul class="highlight-list">
+      <li><strong>Full stack, clearly separated</strong> — Node.js app → Dockerfile → Terraform IaC → GitHub Actions pipeline. Each layer is explicit, not magic.</li>
+      <li><strong>Terraform-provisioned infrastructure</strong> — ECS cluster, task definition, service, ALB, target group, and security groups all declared in HCL. No console clicking.</li>
+      <li><strong>Automated deploy on merge</strong> — GitHub Actions builds the image, pushes to ECR, and triggers a new ECS deployment. Zero manual steps after code review.</li>
+      <li><strong>Progressive hardening path</strong> — repo is structured to show the upgrade path from a working default-VPC setup to private networking, Secrets Manager, and CloudWatch monitoring.</li>
+      <li><strong>Clean, readable codebase</strong> — written as a reference others can learn from, not just a project that runs.</li>
+    </ul>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section id="architecture">
+    <div class="section-label">Architecture</div>
+    <h2>How the pieces fit together</h2>
+    <p>Three layers: the AWS infrastructure (Terraform), the container runtime (ECS Fargate), and the delivery pipeline (GitHub Actions). Each talks to the next but is independently managed.</p>
+
+    <div class="arch-diagram">
+      <div class="arch-label">delivery layer</div>
+      <div class="arch-row">
+        <div class="arch-box highlight">
+          <span class="arch-box-title">GitHub</span>
+          <span class="arch-box-sub">code push / PR merge</span>
+        </div>
+        <span class="arch-arrow orange">→</span>
+        <div class="arch-box highlight">
+          <span class="arch-box-title">GitHub Actions</span>
+          <span class="arch-box-sub">build · push · deploy</span>
+        </div>
+        <span class="arch-arrow orange">→</span>
+        <div class="arch-box highlight">
+          <span class="arch-box-title">Amazon ECR</span>
+          <span class="arch-box-sub">container registry</span>
+        </div>
+      </div>
+
+      <div class="arch-divider"></div>
+      <div class="arch-label">aws infrastructure layer — terraform managed</div>
+
+      <div class="arch-row">
+        <div class="arch-box">
+          <span class="arch-box-title">ALB</span>
+          <span class="arch-box-sub">load balancer</span>
+        </div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-box">
+          <span class="arch-box-title">Target Group</span>
+          <span class="arch-box-sub">health checks</span>
+        </div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-box highlight">
+          <span class="arch-box-title">ECS Fargate</span>
+          <span class="arch-box-sub">container runtime</span>
+        </div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-box">
+          <span class="arch-box-title">Node.js App</span>
+          <span class="arch-box-sub">/health endpoint</span>
+        </div>
+      </div>
+
+      <div class="arch-divider"></div>
+      <div class="arch-label">supporting services</div>
+
+      <div class="arch-row">
+        <div class="arch-box">
+          <span class="arch-box-title">IAM</span>
+          <span class="arch-box-sub">task execution role</span>
+        </div>
+        <div class="arch-box">
+          <span class="arch-box-title">Security Groups</span>
+          <span class="arch-box-sub">network controls</span>
+        </div>
+        <div class="arch-box">
+          <span class="arch-box-title">CloudWatch</span>
+          <span class="arch-box-sub">logs + metrics</span>
+        </div>
+        <div class="arch-box">
+          <span class="arch-box-title">Secrets Manager</span>
+          <span class="arch-box-sub">roadmap →</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CI/CD PIPELINE -->
+  <section id="pipeline">
+    <div class="section-label">CI/CD Pipeline</div>
+    <h2>Merge to deployed in one pipeline</h2>
+    <p>Every merge to <code style="font-family:var(--mono); font-size:12px; background:var(--bg-mid); padding:2px 6px; border-radius:2px;">main</code> triggers the full pipeline — build, scan, push, deploy. No manual steps, no console access required.</p>
+
+    <div class="code-block">
+<span class="cmt"># .github/workflows/deploy.yml</span>
+
+<span class="kw">on:</span>
+  push:
+    branches: [<span class="str">main</span>]
+
+<span class="kw">env:</span>
+  AWS_REGION: <span class="str">us-east-1</span>
+  ECR_REPO: <span class="str">fargate-demo-app</span>
+  ECS_CLUSTER: <span class="str">fargate-demo-cluster</span>
+  ECS_SERVICE: <span class="str">fargate-demo-service</span>
+
+<span class="kw">jobs:</span>
+  build-and-deploy:
+    <span class="kw">steps:</span>
+      - <span class="kw">name:</span> <span class="str">Configure AWS credentials</span>
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: <span class="str">${{ secrets.AWS_ROLE_ARN }}</span>
+          aws-region: <span class="str">${{ env.AWS_REGION }}</span>
+
+      - <span class="kw">name:</span> <span class="str">Login to Amazon ECR</span>
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - <span class="kw">name:</span> <span class="str">Build Docker image</span>
+        run: |
+          docker build -t $ECR_REPO:${{ github.sha }} ./app
+
+      - <span class="kw">name:</span> <span class="str">Tag and push to ECR</span>
+        run: |
+          docker tag $ECR_REPO:${{ github.sha }} \
+            ${{ steps.login-ecr.outputs.registry }}/$ECR_REPO:${{ github.sha }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/$ECR_REPO:${{ github.sha }}
+
+      - <span class="kw">name:</span> <span class="str">Deploy to ECS Fargate</span>
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --force-new-deployment
+    </div>
+  </section>
+
+  <!-- PROGRESSION -->
+  <section id="progression">
+    <div class="section-label">Progression Path</div>
+    <h2>Built to grow with you</h2>
+    <p>The repo is structured as a progressive reference — each stage builds on the last, showing how a basic working deployment evolves into a production-hardened architecture.</p>
+    <div class="progression">
+      <div class="prog-step active" data-step="Stage 1">
+        <span class="prog-icon">🚀</span>
+        <h4>Default VPC scaffold</h4>
+        <p>Working Fargate deployment, ECR, ALB, and full CI/CD pipeline. Ships fast, proves the pattern.</p>
+      </div>
+      <div class="prog-step" data-step="Stage 2">
+        <span class="prog-icon">🔒</span>
+        <h4>Private networking</h4>
+        <p>Move to private subnets with NAT gateway. Containers no longer have public IPs.</p>
+      </div>
+      <div class="prog-step" data-step="Stage 3">
+        <span class="prog-icon">🔑</span>
+        <h4>Secrets Manager</h4>
+        <p>Environment variables replaced with Secrets Manager references. No secrets in task definitions.</p>
+      </div>
+      <div class="prog-step" data-step="Stage 4">
+        <span class="prog-icon">📊</span>
+        <h4>Monitoring + alerts</h4>
+        <p>CloudWatch dashboards, container insights, and alerting for CPU, memory, and request errors.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEARNINGS -->
+  <section>
+    <div class="section-label">Key Takeaways</div>
+    <h2>What this project demonstrates</h2>
+    <div class="learning-grid">
+      <div class="learning-card">
+        <h4>Terraform → ECS</h4>
+        <p>How to express a complete ECS Fargate service — cluster, task definition, service, ALB, IAM — entirely in Terraform with no manual steps.</p>
+      </div>
+      <div class="learning-card">
+        <h4>ECR lifecycle</h4>
+        <p>Image tagging strategy using git SHA for traceability. Lifecycle policies to cap ECR storage. Scan-on-push for baseline vulnerability detection.</p>
+      </div>
+      <div class="learning-card">
+        <h4>GitHub Actions + AWS</h4>
+        <p>Wiring GitHub Actions to AWS using IAM roles (OIDC or access keys), managing ECR auth, and triggering ECS rolling deployments from CI.</p>
+      </div>
+      <div class="learning-card">
+        <h4>Progressive hardening</h4>
+        <p>How to structure a Terraform codebase so that security upgrades (private networking, secrets management) can be layered in without a full rewrite.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STACK -->
+  <section id="stack">
+    <div class="section-label">Tech Stack</div>
+    <h2>Tools and technologies</h2>
+    <div class="stack-grid">
+      <span class="stack-pill">AWS ECS Fargate</span>
+      <span class="stack-pill">Amazon ECR</span>
+      <span class="stack-pill">Terraform</span>
+      <span class="stack-pill">Docker</span>
+      <span class="stack-pill">GitHub Actions</span>
+      <span class="stack-pill">Node.js</span>
+      <span class="stack-pill">ALB</span>
+      <span class="stack-pill">IAM</span>
+      <span class="stack-pill">CloudWatch</span>
+      <span class="stack-pill">AWS Secrets Manager</span>
+      <span class="stack-pill">VPC</span>
+      <span class="stack-pill">Security Groups</span>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap footer-inner">
+    <span class="footer-name">Nelie Tchatchouang</span>
+    <div class="footer-links">
+      <a href="https://github.com/NelieTchat/aws-devops-fargate-demo" target="_blank">GitHub ↗</a>
+      <a href="https://linkedin.com/in/nelie-tchat" target="_blank">LinkedIn ↗</a>
+      <a href="mailto:nelien041@gmail.com">Contact</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
