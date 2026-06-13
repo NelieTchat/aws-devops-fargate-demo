@@ -33,6 +33,10 @@ Portfolio-ready project: a containerized **Node.js app** deployed on **AWS ECS F
 
 ## 🏗️ Architecture Overview
 
+## 🏗️ Architecture Overview
+
+![Architecture](docs/screenshots/fargate-architecture.png)
+
 ```text
                    ┌──────────────────────────┐
                    │      Route 53 (DNS)      │
